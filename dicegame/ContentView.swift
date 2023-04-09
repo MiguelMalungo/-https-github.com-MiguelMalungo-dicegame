@@ -1,88 +1,112 @@
-//
-//  ContentView.swift
-//  dicegame
-//
-//  Created by JOSE MIGUEL FERRAZ GUEDES on 07/04/2023.
-//
-
 import SwiftUI
-import CoreData
 
 struct ContentView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
-        animation: .default)
-    private var items: FetchedResults<Item>
-
+    @State private var diceValue1 = Int.random(in: 1...6)
+    @State private var diceValue2 = Int.random(in: 1...6)
+    @State private var balance1 = 100
+    @State private var balance2 = 100
+    @State private var betAmount1 = ""
+    @State private var betAmount2 = ""
+    @State private var chosenValue1 = 1
+    @State private var chosenValue2 = 1
+    @State private var selectedTheme = "Classic"
+    
     var body: some View {
-        NavigationView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                    } label: {
-                        Text(item.timestamp!, formatter: itemFormatter)
+        ZStack {
+            Color(selectedTheme == "Classic" ? .white : .black)
+                .edgesIgnoringSafeArea(.all)
+            
+            VStack {
+                Picker("Theme", selection: $selectedTheme) {
+                    Text("Classic").tag("Classic")
+                    Text("Neon").tag("Neon")
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding()
+                
+                HStack {
+                    VStack {
+                        Text("Player 1")
+                        Text("Balance: \(balance1)")
+                        TextField("Bet amount", text: $betAmount1)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardType(.numberPad)
+                            .foregroundColor(selectedTheme == "Classic" ? .black : .white)
+                            .background(selectedTheme == "Classic" ? Color.white : Color.black)
+                            .padding()
+                        Picker("Chosen value", selection: $chosenValue1) {
+                            ForEach(1...6, id: \.self) { number in
+                                Text("\(number)")
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        Image(systemName: "die.face.\(diceValue1)")
+                            .font(.system(size: 100))
                     }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                    .foregroundColor(selectedTheme == "Classic" ? .black : .white)
+                    
+                    
+                    VStack {
+                        Text("Player 2")
+                        Text("Balance: \(balance2)")
+                        TextField("Bet amount", text: $betAmount2)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardType(.numberPad)
+                            .foregroundColor(selectedTheme == "Classic" ? .black : .white)
+                            .background(selectedTheme == "Classic" ? Color.white : Color.black)
+                            .padding()
+                        Picker("Chosen value", selection: $chosenValue2) {
+                            ForEach(1...6, id: \.self) { number in
+                                Text("\(number)")
+                                
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        Image(systemName: "die.face.\(diceValue2)")
+                            .font(.system(size: 100))
                     }
+                    .foregroundColor(selectedTheme == "Classic" ? .black : .white)
+                }
+                
+                Button(action: rollDice) {
+                    Text("Roll Dice")
+                        .font(.largeTitle)
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(Color.red)
+                        .cornerRadius(10)
                 }
             }
-            Text("Select an item")
         }
     }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
+    
+    private func rollDice() {
+        diceValue1 = Int.random(in: 1...6)
+        diceValue2 = Int.random(in: 1...6)
+        
+        let bet1 = Int(betAmount1) ?? 0
+        let bet2 = Int(betAmount2) ?? 0
+        
+        if diceValue1 == chosenValue1 {
+            balance1 += bet1
+        } else {
+            balance1 -= bet1
         }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { items[$0] }.forEach(viewContext.delete)
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
+        
+        if diceValue2 == chosenValue2 {
+            balance2 += bet2
+        } else {
+            balance2 -= bet2
         }
+        
+        betAmount1 = ""
+        betAmount2 = ""
     }
-}
-
-private let itemFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .short
-    formatter.timeStyle = .medium
-    return formatter
-}()
-
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+    
+    
+    struct ContentView_Previews: PreviewProvider {
+        static var previews: some View {
+            ContentView()
+        }
     }
 }
